@@ -29,7 +29,7 @@ class RestaurantViewSets(ModelViewSet):
     filterset_class=RestaurantFilter
     search_fields = ['name','city','cuisine_type','description',]
 
-    ordering_fields = ['average_rating','total_ratings','delivery_fee','avg_delivery_time','created_at']
+    ordering_fields = ['average_rating','total_ratings','avg_preparing_time','created_at']
 
     def get_serializer_class(self) -> Type:
         if self.action == 'list':
@@ -77,9 +77,9 @@ class RestaurantViewSets(ModelViewSet):
             'message': f"Restaurant is now {'Open' if restaurant.is_open else 'Closed'}"
         })
 
+
+
 @extend_schema(tags=['Categories-Restaurants'])
-
-
 class CategoryViewSets(ModelViewSet):
     serializer_class = CategorySerializer
 
@@ -152,8 +152,8 @@ class MenuItemViewSets(ModelViewSet):
         return get_object_or_404(Restaurants,pk=self.kwargs['restaurant_pk'],is_active=True)
     
 
-    def get_queryset(self): #type:ignore
-        return self.get_queryset().filter(
+    def get_queryset(self):
+        return super().get_queryset().filter(
             category__restaurant = self.get_restaurants()
         ).select_related('category').prefetch_related('variants')
        

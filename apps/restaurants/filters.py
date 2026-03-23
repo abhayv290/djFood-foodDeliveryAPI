@@ -18,8 +18,7 @@ class RestaurantFilter(django_filters.FilterSet):
 
     # ── Range filters — ?min_rating=4.0 ───────────────────────────────────
     min_rating   = django_filters.NumberFilter(field_name="average_rating", lookup_expr="gte")
-    max_delivery_price = django_filters.NumberFilter(field_name="delivery_fee",   lookup_expr="lte")
-    max_delivery_time = django_filters.NumberFilter(field_name="avg_delivery_time", lookup_expr="lte")
+    max_delivery_time = django_filters.NumberFilter(field_name="avg_preparing_time", lookup_expr="lte")
 
     class Meta:
         model  = Restaurants

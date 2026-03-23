@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     #my apps 
     'apps.users',
     'apps.restaurants',
+    'apps.orders',
 
 ]
 #middleware configurations -----------------------------------------------

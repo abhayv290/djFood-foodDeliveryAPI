@@ -46,11 +46,10 @@ class Restaurants(models.Model):
     #status flags 
     is_active=models.BooleanField(_('Active Status'),default=True)
     is_open = models.BooleanField(_('Open/Closed'),default=True)
-
+    is_premium = models.BooleanField(_('Premium Restaurant'),default=False,help_text='if true,the restro is  subsidized , zero delivery fee+premium section on app') 
     #delivery configs
     min_order_amount= models.DecimalField(_('Minimum Order Amount'),max_digits=8,decimal_places=2,default=Decimal(50.00))
-    delivery_fee = models.DecimalField(_("Delivery Fee"), max_digits=5, decimal_places=2 ,default=Decimal(0.00))
-    avg_delivery_time = models.PositiveIntegerField(_("Delivery Time in minutes"),default=30,help_text='delivery time in minutes')
+    avg_preparing_time = models.PositiveIntegerField(_("Preparing Time in minutes"),default=10,help_text='Average Food preparing time in minutes')
     
     average_rating = models.DecimalField(_("Average Rating"), max_digits=3, decimal_places=2,default=Decimal(0.00))
     total_ratings = models.PositiveIntegerField(_('Total Ratings'),default=0)
@@ -67,6 +66,7 @@ class Restaurants(models.Model):
             models.Index(fields=['cuisine_type']),
             models.Index(fields=['city']),
             models.Index(fields=['is_active', 'is_open']),
+            models.Index(fields=['is_premium'])
         ]
 
     def __str__(self):

@@ -83,8 +83,8 @@ class RestaurantListSerializer(ModelSerializer):
         fields = (
             "id", "name", "cuisine_type", "image",
             "average_rating", "total_ratings",
-            "avg_delivery_time", "delivery_fee",
-            "min_order_amount", "is_open", "city",
+            "avg_preparing_time",
+            "min_order_amount", "is_open", "city",'is_premium'
         )
 
 
@@ -100,7 +100,7 @@ class RestaurantDetailSerializer(ModelSerializer):
             "id", "name", "description", "cuisine_type", "image",
             "address", "city", "pincode","phone",
             "average_rating","total_ratings", "total_items",
-            "avg_delivery_time", "delivery_fee", "min_order_amount",
+            "avg_preparing_time", "min_order_amount", 'is_premium',
             "is_open", "owner_name",
             "categories",   # full nested menu at the bottom
         )
@@ -116,18 +116,13 @@ class RestaurantWriteSerializer(ModelSerializer):
         fields = (
             "name", "description", "cuisine_type", "image",
             "address","city", "pincode","phone",
-            "avg_delivery_time", "delivery_fee", "min_order_amount",
+            "avg_preparing_time", "min_order_amount",
             "is_open",
         )
     
     def validate_min_order_amount(self,value):
         if value<0:
             raise ValidationError('Min price cannot be less than 0')
-        return value
-    
-    def validate_delivery_fee(self,value):
-        if value<0:
-            raise ValidationError('Delivery fee cannot be less than 0')
         return value
     
     def validate(self,attrs):

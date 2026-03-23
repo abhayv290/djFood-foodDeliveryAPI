@@ -37,7 +37,7 @@ class RestaurantAdmin(admin.ModelAdmin):
     fieldsets = (
         ("Basic info",    {"fields": ("owner", "name", "description", "cuisine_type", "image")}),
         ("Location",      {"fields": ("address","city","pincode", "phone", "lat", "long")}),
-        ("Delivery",      {"fields": ("min_order_amount", "delivery_fee", "avg_delivery_time")}),
+        ("Delivery",      {"fields": ("min_order_amount","avg_preparing_time")}),
         ("Status",        {"fields": ("is_active", "is_open")}),
         ("Stats",         {"fields": ("average_rating", "total_ratings"), "classes": ("collapse",)}),
         # ↑ collapse — stats section hidden by default, click to expand

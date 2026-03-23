@@ -23,7 +23,7 @@ class IsOwnerOfRestaurant(BasePermission):
 class IsDeliveryAgent(BasePermission):
     message  = 'Access restricted to delivery agents'
     def has_permission(self,request,view):
-        return request.user and request.user.is_authenticated and request.user_is_delivery_agent
+        return request.user and request.user.is_authenticated and request.user.is_delivery_agent
     
 
 

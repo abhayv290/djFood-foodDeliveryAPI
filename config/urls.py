@@ -14,8 +14,10 @@ urlpatterns = [
     #Auth
     path(API,include(('apps.users.urls' , 'users'))),
 
+    #orders
+    path(API,include(('apps.orders.urls','orders'))),
     #restaurants
-    path(f"{API}restaurants/",include('apps.restaurants.urls','restaurants')),
+    path(f"{API}restaurants/",include(('apps.restaurants.urls','restaurants'))),
 
     #Swagger Ui 
     path('api/schema',SpectacularAPIView.as_view(),name='schema'),

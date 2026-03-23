@@ -7,9 +7,10 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated,AllowAny
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
+from drf_spectacular.utils import extend_schema
 from rest_framework.generics import (
     GenericAPIView,RetrieveUpdateDestroyAPIView,
-    RetrieveUpdateAPIView,RetrieveAPIView,
+    RetrieveUpdateAPIView,
     ListCreateAPIView
 )
 from drf_spectacular.utils import extend_schema
@@ -53,7 +54,7 @@ def create_verification_token(user):
     return token_obj.token
 
 
-
+@extend_schema(tags=['Register'])
 class RegisterView(APIView):
     permission_classes=[AllowAny]
     def post(self,request,serializer):
@@ -91,7 +92,7 @@ class DeliveryAgentRegisterView(RegisterView):
 
 
 
-
+@extend_schema(tags=['Auth'],responses=LoginSerializer)
 class LoginView(APIView):
     permission_classes = [AllowAny]
     @extend_schema(request=LoginSerializer)
@@ -120,7 +121,7 @@ class LoginView(APIView):
 
 
 
-
+@extend_schema(tags=['Auth'])
 class LogoutView(APIView):
     '''Blacklisting Refresh Token , So that user cannot generate new access token 
        '''
@@ -137,10 +138,9 @@ class LogoutView(APIView):
         
 
 
-
-''' Me endpoint for getting my profile information '''
+@extend_schema(tags=['Auth'])
 class MeView(APIView):
-    '''For fetching profile information'''
+    '''For fetching Who is logged in'''
     permission_classes = [IsAuthenticated]
     def get(self,request):
         user = request.user
@@ -166,7 +166,9 @@ class MeView(APIView):
            
 
 
+
 #password change
+@extend_schema(tags=['Auth'])
 class ChangePasswordView(APIView):
     permission_classes=[IsAuthenticated]
     def post(self,request):
@@ -178,6 +180,7 @@ class ChangePasswordView(APIView):
         return Response({'message' : 'Password Updated'})
     
 #TODO 
+@extend_schema(tags=['Auth'])
 class ResetPassword(APIView):
     permission_classes=[AllowAny]
     def post(self,request):
@@ -187,8 +190,8 @@ class ResetPassword(APIView):
 
 
 
-
-class CustomerProfileView(RetrieveAPIView):
+@extend_schema(tags=['Profiles-Customer'])
+class CustomerProfileView(RetrieveUpdateAPIView):
     permission_classes=[IsAuthenticated,IsCustomer]
     serializer_class = CustomerProfileSerializer
 
@@ -199,6 +202,7 @@ class CustomerProfileView(RetrieveAPIView):
 
 
 
+@extend_schema(tags=['Profiles-Customer'])
 class CustomerAddressView(ListCreateAPIView):
     permission_classes=[IsAuthenticated,IsCustomer]
     serializer_class = CustomerAddressSerializer
@@ -210,6 +214,7 @@ class CustomerAddressView(ListCreateAPIView):
         serializer.save(customer=self.request.user.customer_profile) #type:ignore
 
 
+@extend_schema(tags=['Addresses-Customer'])
 class CustomerAddressDetailView(RetrieveUpdateDestroyAPIView):
     permission_classes= [IsAuthenticated,IsCustomer]
     serializer_class = CustomerAddressSerializer
@@ -218,6 +223,7 @@ class CustomerAddressDetailView(RetrieveUpdateDestroyAPIView):
         return self.request.user.customer_profile.addresses.all() #type:ignore
 
 
+@extend_schema(tags=['Addresses-Customer'])
 class CustomerSetDefaultAddressView(APIView):
     permission_classes=[IsAuthenticated,IsCustomer]
     
@@ -231,7 +237,7 @@ class CustomerSetDefaultAddressView(APIView):
        address.save()
        return Response({'message' : 'Default Address Updated'})
 
-
+@extend_schema(tags=['Profiles-Restaurant'])
 class RestaurantOwnerProfileView(RetrieveUpdateAPIView):
     permission_classes = [IsAuthenticated,IsRestaurantOwner]
     serializer_class = RestaurantOwnerProfileSerializer
@@ -240,6 +246,7 @@ class RestaurantOwnerProfileView(RetrieveUpdateAPIView):
         return self.request.user.owner_profile #type:ignore
 
 
+@extend_schema(tags=['Profiles-Delivery Agent'])
 class DeliveryAgentProfileView(RetrieveUpdateAPIView):
     permission_classes=[IsAuthenticated,IsDeliveryAgent]
     serializer_class = DeliveryAgentProfileSerializer
@@ -249,6 +256,7 @@ class DeliveryAgentProfileView(RetrieveUpdateAPIView):
     
 
 
+@extend_schema(tags=['Profiles-Delivery Agent'])
 class DeliveryAgentProfileLocation(APIView):
     permission_classes  = [IsAuthenticated,IsDeliveryAgent]
     """
@@ -275,6 +283,7 @@ class DeliveryAgentProfileLocation(APIView):
         return Response({'message' : 'Location Updated'})
 
 
+@extend_schema(tags=['Profiles-Delivery Agent'])
 class AgentAvailabilityView(APIView):
     #Toggle Agent Status Online /offline
     permission_classes = [IsAuthenticated,IsDeliveryAgent]
@@ -300,7 +309,7 @@ class AgentAvailabilityView(APIView):
 
 
 #Email Verifications Views
- 
+@extend_schema(tags=['Email Service'])
 class VerifyEmailView(GenericAPIView):
     """
     GET /api/v1/auth/email/verify/?token=<uuid>
@@ -345,6 +354,7 @@ class VerifyEmailView(GenericAPIView):
  
 
 
+@extend_schema(tags=['Email Service'])
 class ResendVerificationEmailView(GenericAPIView):
     """
     For users who didn't get the email or whose token expired.
