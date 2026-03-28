@@ -1,7 +1,9 @@
 from typing import cast
 from datetime import timedelta
 from django.utils import timezone
-from rest_framework import status,generics 
+from rest_framework import status
+from apps.orders.models import Order
+from apps.tracking.utils import broadcast_location_update
 from rest_framework.views   import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated,AllowAny
@@ -256,7 +258,7 @@ class DeliveryAgentProfileView(RetrieveUpdateAPIView):
     
 
 
-@extend_schema(tags=['Profiles-Delivery Agent'])
+@extend_schema(tags=['Profiles-Delivery Agent'],request=AgentLocationUpdateSerializer)
 class DeliveryAgentProfileLocation(APIView):
     permission_classes  = [IsAuthenticated,IsDeliveryAgent]
     """
@@ -279,8 +281,21 @@ class DeliveryAgentProfileLocation(APIView):
         
         profile.save(update_fields=['lat','long','last_location_update',
                                     'status'])
+
+        #active order for this agent
+        active_order = Order.objects.filter(
+            delivery_agent = request.user,
+            status = Order.Status.PICKED_UP,
+        ).first()
         
-        return Response({'message' : 'Location Updated'})
+        if active_order:
+            broadcast_location_update(
+                order_id = str(active_order.id),
+                latitude = data['lat'],
+                longitude= data['long'],
+                status=profile.status
+            )
+        return Response({'message' : 'Location Updated'},status=status.HTTP_200_OK)
 
 
 @extend_schema(tags=['Profiles-Delivery Agent'])

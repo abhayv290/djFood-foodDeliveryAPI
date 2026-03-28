@@ -28,6 +28,7 @@ RAZORPAY_KEY_ID = env('RAZORPAY_KEY_ID')
 RAZORPAY_KEY_SECRET = env('RAZORPAY_KEY_SECRET')
 # Application definition -----------------------------------------------
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -36,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     #third party services 
+    'channels',
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
@@ -49,6 +51,7 @@ INSTALLED_APPS = [
     'apps.restaurants',
     'apps.orders',
     'apps.payments',
+    'apps.tracking',
 
 ]
 #middleware configurations -----------------------------------------------
@@ -76,6 +79,16 @@ DATABASES = {
     }
 }
 
+
+#Channel Layers with Redis
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG":  {"hosts": [{
+            'address':env('REDIS_URL'),
+        }]},
+    }
+}
 
  
 # ── Django REST Framework ─────────────────────────────────────────────────────

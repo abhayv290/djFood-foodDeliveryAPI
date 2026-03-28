@@ -205,6 +205,10 @@ class OrderStatusUpdateView(APIView):
         else:
             order.save(update_fields=['status'])
         
+        #broadcast order status 
+        from apps.tracking.utils import broadcast_order_status
+        broadcast_order_status(order_id=str(order.id),status=new_status)
+
         #Record in History 
         OrderStatusHistory.objects.create(
             order=order,
