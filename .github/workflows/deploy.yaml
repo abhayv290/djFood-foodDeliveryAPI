@@ -2,26 +2,45 @@ name: FoodRevolut CI/CD
 
 on:
   push:
-    branches: [ main ] # full pipeline on main push
+    branches: [ main ]
   pull_request:
-    branches: [ main ] # tests only on PRs
+    branches: [ main ]
 
 env:
-  AWS_REGION: ap-south-1 # Mumbai — closest to India
-  ECR_REPOSITORY: foodrevolut # ECR repo name
-  IMAGE_TAG: ${{ github.sha }} # unique tag per commit
+  AWS_REGION: ap-south-1
+  ECR_REPOSITORY: foodrevolut
+  IMAGE_TAG: ${{ github.sha }}
 
 jobs:
 
   # ────────────────────────────────────────────────────────────────────────────
-  # JOB 1 — TEST (runs on every push and PR)
+  # JOB 1 — TEST
   # ────────────────────────────────────────────────────────────────────────────
   test:
     name: Run Tests
     runs-on: ubuntu-latest
 
+    env:
+      DJANGO_SETTINGS_MODULE: config.settings.local
+      SECRET_KEY: test-secret-key-not-used-in-production
+      ALLOWED_HOSTS: "localhost"
+      CORS_ALLOWED_ORIGINS: "http://localhost:5173"
+      DEBUG: "True"
+      USE_S3: "False"
+      DB_NAME: test_foodrevolut
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_HOST: localhost
+      DB_PORT: "5432"
+      REDIS_URL: redis://localhost:6379/0
+      RAZORPAY_KEY_ID: test_key
+      RAZORPAY_KEY_SECRET: test_secret
+      MAILGUN_API_KEY: test_key
+      MAILGUN_DOMAIN: test.mailgun.org
+      DEFAULT_FROM_EMAIL: test@test.com
+      FRONTEND_URL: http://localhost:5173
+
     services:
-      # Spin up a PostgreSQL container for tests
       postgres:
         image: postgres:15
         env:
@@ -34,6 +53,14 @@ jobs:
           --health-cmd pg_isready --health-interval 10s --health-timeout 5s
           --health-retries 5
 
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 10s --health-timeout
+          5s --health-retries 5
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -43,8 +70,6 @@ jobs:
         with:
           python-version: "3.14"
           cache: "pip"
-            # cache pip dependencies between runs
-            # saves ~1-2 minutes per run
 
       - name: Install dependencies
         run: |
@@ -52,72 +77,24 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run tests
-        env:
-          # ── Test environment variables ──────────────────────────────────
-          # Use GitHub secrets for sensitive values
-          # Use inline values for test-specific config
-          DJANGO_SETTINGS_MODULE: config.settings.local
-          SECRET_KEY: test-secret-key-not-used-in-production
-          ALLOWED_HOSTS: "localhost"
-          CORS_ALLOWED_ORIGINS: "http://localhost:5173"
-          DEBUG: "True"
-          USE_S3: False
-          DB_NAME: test_foodrevolut
-          DB_USER: postgres
-          DB_PASSWORD: postgres
-          DB_HOST: localhost
-          DB_PORT: "5432"
-          REDIS_URL: ${{ secrets.REDIS_URL }}
-          RAZORPAY_KEY_ID: test_key
-          RAZORPAY_KEY_SECRET: test_secret
-          MAILGUN_API_KEY: test_key
-          MAILGUN_DOMAIN: test.mailgun.org
-          DEFAULT_FROM_EMAIL: test@test.com
-          FRONTEND_URL: http://localhost:5173
         run: |
           python manage.py migrate --noinput
           python manage.py test --verbosity=2
 
       - name: Check for missing migrations
-        env:
-          DJANGO_SETTINGS_MODULE: config.settings.local
-          SECRET_KEY: test-secret-key-not-used-in-production
-          ALLOWED_HOSTS: "localhost"
-          CORS_ALLOWED_ORIGINS: "http://localhost:5173"
-          DEBUG: "True"
-          USE_S3: False
-          DB_NAME: test_foodrevolut
-          DB_USER: postgres
-          DB_PASSWORD: postgres
-          DB_HOST: localhost
-          DB_PORT: "5432"
-          REDIS_URL: ${{ secrets.REDIS_URL }}
-          RAZORPAY_KEY_ID: test_key
-          RAZORPAY_KEY_SECRET: test_secret
-          MAILGUN_API_KEY: test_key
-          MAILGUN_DOMAIN: test.mailgun.org
-          DEFAULT_FROM_EMAIL: test@test.com
-          FRONTEND_URL: http://localhost:5173
-        run: |
-          # ── Why check migrations? ───────────────────────────────────────
-          # Catches the common mistake of editing a model
-          # without running makemigrations.
-          # Fails the build before it reaches production.
-          python manage.py migrate --noinput
-          python manage.py makemigrations --check --dry-run
+        run: python manage.py makemigrations --check --dry-run
 
   # ────────────────────────────────────────────────────────────────────────────
-  # JOB 2 — BUILD & PUSH TO ECR (only on main branch)
+  # JOB 2 — BUILD & PUSH TO ECR
   # ────────────────────────────────────────────────────────────────────────────
   build:
     name: Build and Push Docker Image
     runs-on: ubuntu-latest
-    needs: test # only runs if tests pass
-    if: github.ref == 'refs/heads/main' # only on main, not PRs
+    needs: test
+    if: github.ref == 'refs/heads/main'
     environment: aws-deploy
 
     outputs:
-      # Pass image URI to deploy job
       image: ${{ steps.build-image.outputs.image }}
       registry: ${{ steps.login-ecr.outputs.registry }}
 
@@ -141,25 +118,21 @@ jobs:
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
-          # Build Docker image
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
 
-          # Also tag as 'latest' for easy reference
           docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
                      $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
-          # Push both tags to ECR
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
-          # Output image URI for deploy job
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
       - name: Image digest
         run: echo "Image pushed → ${{ steps.build-image.outputs.image }}"
 
   # ────────────────────────────────────────────────────────────────────────────
-  # JOB 3 — DEPLOY TO EC2 (only on main branch, after build)
+  # JOB 3 — DEPLOY TO EC2 WITH ROLLBACK
   # ────────────────────────────────────────────────────────────────────────────
   deploy:
     name: Deploy to EC2
@@ -172,17 +145,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # - name: Configure AWS credentials
-      #   uses: aws-actions/configure-aws-credentials@v4
-      #   with:
-      #     aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      #     aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      #     aws-region: ${{ env.AWS_REGION }}
-
-      # - name: Login to Amazon ECR
-      #   id: login-ecr
-      #   uses: aws-actions/amazon-ecr-login@v2
-
       - name: Deploy to EC2 via SSH
         uses: appleboy/ssh-action@v1
         with:
@@ -190,56 +152,107 @@ jobs:
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           envs: IMAGE_TAG,AWS_REGION
+          # ── command_timeout prevents hanging forever ──────────────────
+          command_timeout: 10m
           script: |
-            # ── What runs ON the EC2 server ──────────────────────────────
+            set -e
 
-            # Move to app directory
             cd /home/ubuntu/foodrevolut
 
-            # Pull latest code (for docker-compose.prod.yaml and nginx config)
+            # ── Read last known good tag ──────────────────────────────────
+            # .stable_tag is only written after a SUCCESSFUL health check
+            # so it always points to the last working deployment
+            STABLE_TAG=$(cat .stable_tag 2>/dev/null || echo "")
+            echo "🔖 Stable tag: ${STABLE_TAG:-none}"
+            echo "🚀 New tag: $IMAGE_TAG"
+
+            # ── Setup ─────────────────────────────────────────────────────
             git pull origin main
 
-            # Login to ECR from the server
             aws ecr get-login-password --region $AWS_REGION | \
               docker login --username AWS --password-stdin \
               ${{ needs.build.outputs.registry }}
 
-            # Export variables for docker-compose
             export ECR_REGISTRY=${{ needs.build.outputs.registry }}
             export ECR_REPOSITORY=${{ env.ECR_REPOSITORY }}
             export IMAGE_TAG=${{ env.IMAGE_TAG }}
 
-            # Pull the new image
-                      docker compose -f docker-compose.prod.yaml pull
+            # ── Pull new image ─────────────────────────────────────────────
+            echo "📦 Pulling new image..."
+            docker compose -f docker-compose.prod.yaml pull
 
-            # ── Zero-downtime restart ─────────────────────────────────────
-            # Start new containers before stopping old ones
-                      docker compose -f docker-compose.prod.yaml up -d --no-deps web
-                      docker compose -f docker-compose.prod.yaml up -d --no-deps worker
-                      docker compose -f docker-compose.prod.yaml up -d --no-deps beat
-                      docker compose -f docker-compose.prod.yaml up -d --no-deps nginx
-
-            # Run migrations on the new container
-                      docker compose -f docker-compose.prod.yaml exec -T web \
+            # ── Run migrations BEFORE swapping containers ──────────────────
+            # Spin up a temporary container to run migrations safely
+            # If migrations fail → stop here, old containers keep running
+            echo "🔄 Running migrations..."
+            docker run --rm \
+              --env-file .env.prod \
+              -e DJANGO_SETTINGS_MODULE=config.settings.prod \
+              $ECR_REGISTRY/$ECR_REPOSITORY:${{ env.IMAGE_TAG }} \
               python manage.py migrate --noinput
 
-            # Clean up old Docker images to save disk space
+            echo "✅ Migrations passed"
+
+            # ── Swap containers ────────────────────────────────────────────
+            echo "🔁 Swapping containers..."
+            docker compose -f docker-compose.prod.yaml up -d --no-deps web
+            docker compose -f docker-compose.prod.yaml up -d --no-deps worker
+            docker compose -f docker-compose.prod.yaml up -d --no-deps beat
+            docker compose -f docker-compose.prod.yaml up -d --no-deps nginx
+
+            # ── Health check ───────────────────────────────────────────────
+            echo "🏥 Running health check..."
+            PASSED=false
+
+            for i in $(seq 1 8); do
+              STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+                http://${{secrets.EC2_HOST}}/api/health/ 2>/dev/null || echo "000")
+              echo "  Attempt $i/8: HTTP $STATUS"
+
+              if [ "$STATUS" = "200" ]; then
+                PASSED=true
+                break
+              fi
+              sleep 10
+            done
+
+            # ── Rollback if health check failed ────────────────────────────
+            if [ "$PASSED" = "false" ]; then
+              echo "❌ Health check failed!"
+
+              if [ -z "$STABLE_TAG" ]; then
+                echo "⚠️ No stable tag found — cannot rollback automatically"
+                echo "   Fix the issue and redeploy manually"
+                exit 1
+              fi
+
+              echo "⏪ Rolling back to stable tag: $STABLE_TAG"
+
+              export IMAGE_TAG=$STABLE_TAG
+              docker compose -f docker-compose.prod.yaml pull
+              docker compose -f docker-compose.prod.yaml up -d --no-deps web
+              docker compose -f docker-compose.prod.yaml up -d --no-deps worker
+              docker compose -f docker-compose.prod.yaml up -d --no-deps beat
+              docker compose -f docker-compose.prod.yaml up -d --no-deps nginx
+
+              # Verify rollback succeeded
+              sleep 15
+              ROLLBACK_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+                http://${{secrets.EC2_HOST}}/api/health/ 2>/dev/null || echo "000")
+
+              if [ "$ROLLBACK_STATUS" = "200" ]; then
+                echo "✅ Rollback successful — running on: $STABLE_TAG"
+              else
+                echo "💀 Rollback also failed — manual intervention needed!"
+              fi
+
+              # Fail the workflow so GitHub marks deploy as failed
+              exit 1
+            fi
+
+            # ── Success — save this tag as new stable ──────────────────────
+            echo ${{ env.IMAGE_TAG }} > .stable_tag
+            echo "💾 Saved stable tag: ${{ env.IMAGE_TAG }}"
+
             docker image prune -f
-
             echo "✅ Deployment complete — image: $IMAGE_TAG"
-
-      - name: Health check after deploy
-        run: |
-          sleep 30
-          for i in $(seq 1 5); do
-            response=$(curl -s -o /dev/null -w "%{http_code}" \
-                 http://${{ secrets.EC2_HOST }}/api/health/)
-               if [ "$response" -eq 200 ]; then
-                 echo "✅ Health check passed"
-                 exit 0
-               fi
-               echo "Attempt $i failed (HTTP $response), retrying..."
-               sleep 10
-             done
-             echo "❌ Health check failed after 5 attempts"
-             exit 1
