@@ -90,7 +90,7 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG":  {"hosts": [{
-            'address':env('REDIS_URL'),
+            'address':env('CHANNEL_REDIS_URL'),
               "ssl_cert_reqs": ssl.CERT_NONE,
         }]},
     }
@@ -111,7 +111,7 @@ CELERY_REDIS_BACKEND_USE_SSL = {
 CELERY_BEAT_SCHEDULE = {
     'cancel-unpaid-orders' :{
         'task' : 'apps.orders.tasks.cancel_unpaid_orders',
-        'schedule' : timedelta(days=7),  # run once a week
+        'schedule' : 600,  # run every 10 min 
     }
 }
 
@@ -120,7 +120,7 @@ CELERY_BEAT_SCHEDULE = {
 CACHES = {
     'default' : {
         'BACKEND' : 'django.core.cache.backends.redis.RedisCache',
-        'LOCATION' : env('REDIS_URL'),
+        'LOCATION' : env('CHANNEL_REDIS_URL'),
         'OPTIONS'  : {
              "ssl_cert_reqs": ssl.CERT_NONE,
         }
