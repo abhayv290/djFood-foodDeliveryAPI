@@ -18,6 +18,8 @@ DEBUG = env('DEBUG')
 
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS') if env('ALLOWED_HOSTS') else ['localhost']
 
+SERVER_URL=env.str('SERVER_URL',default='http://localhost:8000')
+
 ROOT_URLCONF = 'config.urls'
 
 ASGI_APPLICATION = 'config.asgi.application'  
@@ -109,7 +111,7 @@ CELERY_REDIS_BACKEND_USE_SSL = {
 CELERY_BEAT_SCHEDULE = {
     'cancel-unpaid-orders' :{
         'task' : 'apps.orders.tasks.cancel_unpaid_orders',
-        'schedule' : 300   # pol every 5 minutes
+        'schedule' : timedelta(days=7),  # run once a week
     }
 }
 

@@ -27,7 +27,7 @@ def text_email_reset_password(name,link):
     """.strip()
 
 def send_verification_email(user,token):
-    link  = f"http://localhost:8000/api/v1/auth/email/verify/?token={token}"
+    link  = f"{settings.SERVER_URL}/api/v1/auth/email/verify/?token={token}"
     text_body = text_email(user.name,link)
     send_mail(
         subject='Verify Your FoodRevolut Account',
@@ -38,7 +38,7 @@ def send_verification_email(user,token):
 
 
 def send_password_reset_email(user,token):
-    link = f"http://localhost:8000/api/v1/auth/password/reset/?token={token}"
+    link = f"{settings.SERVER_URL}/api/v1/auth/password/reset/?token={token}"
     text_body = text_email_reset_password(user.name,link)
     send_mail(
         subject='Reset Your Old password ',

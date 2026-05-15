@@ -15,8 +15,8 @@ class UserAdmin(BaseUserAdmin):
         (None, {'fields' : ('email','password')}),
         ('Personal Info' , {'fields' :('name','phone','role')}),
         ('Verification' ,{'fields' : ('is_phone_verified','is_email_verified')}),
-        ('Permissions' , {'fields' : ('is_active' , 'is_staff' , 'is_superuser') }),
-        ('Dates' , {'fields' : ('date_joined' ,'last_login')})
+        ('Permissions' , {'fields' : ('is_active' , 'is_staff' , 'is_superuser','groups','user_permissions') }),
+        ('Dates' , {'fields' : ('date_joined' ,'last_login')}),
     )
     
     add_fieldsets = (
@@ -59,4 +59,6 @@ class EmailVerificationAdmin(admin.ModelAdmin):
     readonly_fields = ('token','created_at')
 
 
-admin.site.site_header = 'djFood-FoodDeliveryAPI'
+admin.site.site_header = 'FoodRevolut - Food Delivery API'
+admin.site.site_title = 'FoodRevolut Admin Panel'
+admin.site.index_title = 'Welcome to FoodRevolut Administration'
