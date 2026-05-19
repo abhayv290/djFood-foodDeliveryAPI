@@ -15,3 +15,11 @@ ramesh_refresh=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVz
 #Scripts 
 celery worker ->  celery -A config worker --loglevel=info 
 celery schedular  -> celery -A config beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseSchedule
+
+
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc4OTIzMjg2LCJpYXQiOjE3Nzg4MzY4ODYsImp0aSI6IjI4Y2I3OGMyNjdiZDQ4Y2FiNzRhZjc3YzJhZThiZDhjIiwidXNlcl9pZCI6ImJjZjE1YjRkLThkMDYtNDRkZC05YjUzLTY1ZjZlMGMwMTU2MyIsInJvbGUiOiJDVVNUT01FUiIsIm5hbWUiOiJBYmhheSBWaXNod2FrYXJtYSJ9.M0ABKq1-oP6irwehPFkoQrK1eXf0kR3pfhFFNJQXMj8
+
+
+redis-cli --tls -u rediss://default:gQAAAAAAAfv1AAIgcDExMWRjNTRiN2EzOTQ0ODM2YWQyZjVhYWRmNTY4MGY2ZA@equipped-woodcock-130037.upstash.io:6379
+
+redis-cli --tls -u rediss://default:gQAAAAAAAed9AAIgcDEyNzhlNzVkYjFmNDM0NmNkYTA5YzQ5MDFlYmYyZmNiZA@concise-hound-124797.upstash.io:6379

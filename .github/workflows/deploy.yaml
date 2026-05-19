@@ -2,9 +2,9 @@ name: FoodRevolut CI/CD
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 env:
   AWS_REGION: ap-south-1
@@ -12,7 +12,6 @@ env:
   IMAGE_TAG: ${{ github.sha }}
 
 jobs:
-
   # ────────────────────────────────────────────────────────────────────────────
   # JOB 1 — TEST
   # ────────────────────────────────────────────────────────────────────────────
@@ -33,6 +32,7 @@ jobs:
       DB_HOST: localhost
       DB_PORT: "5432"
       REDIS_URL: redis://localhost:6379/0
+      CHANNEL_REDIS_URL: redis://localhost:6379/0
       RAZORPAY_KEY_ID: test_key
       RAZORPAY_KEY_SECRET: test_secret
       MAILGUN_API_KEY: test_key
@@ -218,7 +218,7 @@ jobs:
 
             for i in $(seq 1 8); do
               STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-                http://${{secrets.EC2_HOST}}/api/health/ 2>/dev/null || echo "000")
+                https://${{secrets.MY_DOMAIN}}/api/health/ 2>/dev/null || echo "000")
               echo "  Attempt $i/8: HTTP $STATUS"
               if [ "$STATUS" = "200" ]; then
                 PASSED=true
@@ -300,7 +300,7 @@ jobs:
 
                   for i in $(seq 1 8); do
                     STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-                      http://${{secrets.EC2_HOST}}/api/health/ 2>/dev/null || echo "000")
+                      https://${{secrets.MY_DOMAIN}}/api/health/ 2>/dev/null || echo "000")
                     echo "  Attempt $i/8: HTTP $STATUS"
 
                     if [ "$STATUS" = "200" ]; then
